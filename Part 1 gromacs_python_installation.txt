@@ -1,0 +1,63 @@
+
+✅ GROMACS + Python 3.7 Installation Script (Ubuntu 22.04)
+
+🔹 Step 1: Update your system
+sudo apt update && sudo apt upgrade -y
+
+🔹 Step 2: Install dependencies for GROMACS
+sudo apt install build-essential cmake git libfftw3-dev libgsl-dev \
+libboost-all-dev libeigen3-dev libxml2-dev libexpat1-dev \
+libncurses5-dev libopenmpi-dev openmpi-bin -y
+
+🔹 Step 3: Download and compile GROMACS 
+cd ~
+wget ftp://ftp.gromacs.org/pub/gromacs/gromacs-2023.3.tar.gz
+tar -xvzf gromacs-2023.3.tar.gz
+cd gromacs-2023.3
+mkdir build && cd build
+cmake .. -DGMX_BUILD_OWN_FFTW=ON -DREGRESSIONTEST_DOWNLOAD=ON -DCMAKE_INSTALL_PREFIX=/usr/local/gromacs
+make -j$(nproc)
+sudo make install
+
+🔹 Step 4: Source GROMACS in every session
+echo 'source /usr/local/gromacs/bin/GMXRC' >> ~/.bashrc
+source ~/.bashrc
+
+🔹 Step 5: Install system dependencies for building Python
+sudo apt update
+sudo apt install build-essential libssl-dev zlib1g-dev \
+libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev -y
+
+🔹 Step 6: Install pyenv (Python version manager)
+curl https://pyenv.run | bash
+
+# Add to ~/.bashrc or ~/.zshrc
+export PATH="$HOME/.pyenv/bin:$PATH"
+eval "$(pyenv init --path)"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"
+
+# Install and set Python 3.7.17
+pyenv install 3.7.17
+pyenv global 3.7.17
+
+# Create a virtual environment
+python -m venv gromacs_env
+
+# Activate the environment
+source gromacs_env/bin/activate
+
+🔹 Step 7: Install required Python packages
+python3.7 -m pip install --upgrade pip
+python3.7 -m pip install numpy
+python3.7 -m pip install networkx==1.11
+
+✅ Verification Commands
+
+To test GROMACS:
+gmx --version
+
+To test Python packages:
+python3.7 -c "import numpy; print(numpy.__version__)"
+python3.7 -c "import networkx as nx; print(nx.__version__)"

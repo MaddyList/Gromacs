@@ -1,0 +1,58 @@
+
+✅ GROMACS Trajectory and Interaction Analysis Workflow
+
+🔹 Step 1: Environment Setup
+cd /mnt/c/Users/hibsa/Desktop/gmx
+source /usr/local/gromacs/bin/GMXRC
+source ~/gromacs_env/bin/activate
+
+🔹 Step 2: Recentering and Rewrapping Coordinates
+gmx trjconv -s md_0_1.tpr -f md_0_1.xtc -o md_0_1_center.xtc -center -pbc mol -ur compact
+
+🔹 Step 3: Extract a Frame from the Recentered Trajectory
+gmx trjconv -s md_0_1.tpr -f md_0_1_center.xtc -o start.pdb -dump 0
+
+🔹 Step 4: Rotational and Translational Fitting
+gmx trjconv -s md_0_1.tpr -f md_0_1_center.xtc -o md_0_1_fit.xtc -fit rot+trans
+
+🔹 Step 5: Protein-Ligand Interaction and Ligand Dynamics
+
+# Check Atom Names
+gmx dump -s md_0_1.tpr | grep -E 'OAB|OE1'
+
+# Measure Distance Between Selected Atoms
+gmx distance -s md_0_1.tpr -f md_0_1_center.xtc -select 'resname "UNK" and name OAB plus resid 102 and name OE1' -oall
+
+# Create Custom Index Groups
+gmx make_ndx -f em.gro -o index.ndx
+> 13 & a OAB | a H12
+> 1 & r 102 & a OE1
+> 22 | 23   (e.g., use 20 | 21 based on your setup)
+> q
+
+🔹 Step 6: Calculate Angles
+gmx angle -f md_0_1_center.xtc -n index.ndx -ov angle.xvg
+
+# If needed, manually edit index.ndx and rerun:
+gmx angle -f md_0_10_center.xtc -n index.ndx -ov angle.xvg
+
+🔹 Step 7: Ligand RMSD Calculation
+gmx make_ndx -f em.gro -n index.ndx
+> 13 & ! a H*
+> name 24 UNK_Heavy
+> q
+
+gmx rms -s em.tpr -f md_0_1_center.xtc -n index.ndx -tu ns -o rmsd_UNK.xvg
+# Select "Backbone" for fitting and "UNK_Heavy" for RMSD
+
+🔹 Step 8: Protein-Ligand Interaction Energy
+gmx make_ndx -f em.gro -o index.ndx
+> 1 | 13
+> name 20 Protein_UNK
+> q
+
+gmx grompp -f ie.mdp -c npt.gro -t npt.cpt -p topol.top -n index.ndx -o ie.tpr
+gmx mdrun -deffnm ie -rerun md_0_1.xtc -nb cpu -v
+
+# Extract Energy
+gmx energy -f ie.edr -o interaction_energy.xvg

@@ -1,0 +1,58 @@
+
+✅ GROMACS Environment Setup and MD Simulation Workflow
+
+🔹 Step 1: Environment Setup
+cd /mnt/c/Users/hibsa/Desktop/gmx
+source /usr/local/gromacs/bin/GMXRC
+source ~/gromacs_env/bin/activate
+
+🔹 Step 2: Protein Preparation
+gmx pdb2gmx -f protein.pdb -o protein_processed.gro -ter 
+
+🔹 Step 3: Ligand Topology Preparation
+perl sort_mol2_bonds.pl ligand.mol2 ligand_fix.mol2
+python3.7 cgenff_charmm2gmx_py3_nx1.py ligand ligand_fix.mol2 ligand_fix.str charmm36-jul2022.ff
+
+🔹 Step 4: Build the Complex
+gmx editconf -f ligand_ini.pdb -o ligand.gro
+
+🔹 Step 5: Solvation
+gmx editconf -f complex.gro -o newbox.gro -bt dodecahedron -d 1.0
+gmx solvate -cp newbox.gro -cs spc216.gro -p topol.top -o solv.gro
+
+🔹 Step 6: Adding Ions
+gmx grompp -f ions.mdp -c solv.gro -p topol.top -o ions.tpr
+# If warnings occur:
+gmx grompp -f ions.mdp -c solv.gro -p topol.top -o ions.tpr -maxwarn 1
+gmx genion -s ions.tpr -o solv_ions.gro -p topol.top -pname NA -nname CL -neutral
+
+🔹 Step 7: Energy Minimization
+gmx grompp -f em.mdp -c solv_ions.gro -p topol.top -o em.tpr
+# If warnings occur:
+gmx grompp -f em.mdp -c solv_ions.gro -p topol.top -o em.tpr -maxwarn 1
+gmx mdrun -v -deffnm em
+
+🔹 Step 8: Equilibration - NVT
+gmx make_ndx -f ligand.gro -o index_ligand.ndx
+# Then type:
+> 0 & ! a H*
+> q
+gmx genrestr -f ligand.gro -n index_ligand.ndx -o posre_ligand.itp -fc 1000 1000 1000
+
+gmx make_ndx -f em.gro -o index.ndx
+# Then type:
+> 1 | 13
+> q
+
+gmx grompp -f nvt.mdp -c em.gro -r em.gro -p topol.top -n index.ndx -o nvt.tpr
+gmx mdrun -deffnm nvt -v
+
+🔹 Step 9: Equilibration - NPT
+gmx grompp -f npt.mdp -c nvt.gro -t nvt.cpt -r nvt.gro -p topol.top -n index.ndx -o npt.tpr
+# If warnings occur:
+gmx grompp -f npt.mdp -c nvt.gro -t nvt.cpt -r nvt.gro -p topol.top -n index.ndx -o npt.tpr -maxwarn 1
+gmx mdrun -deffnm npt -v
+
+🔹 Step 10: Production MD
+gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p topol.top -n index.ndx -o md_0_1.tpr
+gmx mdrun -deffnm md_0_1 -v
