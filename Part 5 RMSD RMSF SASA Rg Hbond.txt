@@ -1,0 +1,43 @@
+cd /mnt/c/Users/hibsa/Desktop/gmx
+source /usr/local/gromacs/bin/GMXRC
+source ~/gromacs_env/bin/activate
+
+sudo apt install grace
+
+Recentering and Rewrapping Coordinates
+gmx trjconv -s md_0_0.tpr -f md_0_10.xtc -o md_0_10_center.xtc -center -pbc mol -ur compact
+Choose "Protein" for centering and "System" for output.
+
+
+Recentered trajectory
+gmx trjconv -s md_0_10.tpr -f md_0_10_center.xtc -o start.pdb -dump 0
+Choose system as output
+
+
+RMSD
+gmx rms -s em.tpr -f md_0_10_center.xtc -n index.ndx -tu ns -o xvg/rmsdpro.xvg
+for Protein 1 and 1
+gmx rms -s em.tpr -f md_0_10_center.xtc -n index.ndx -tu ns -o xvg/rmsdlig.xvg
+xmgrace xvg/rmsdpro.xvg
+xmgrace xvg/rmsdlig.xvg
+xmgrace xvg/rmsdlig.xvg xvg/rmsdpro.xvg
+
+
+RMSF
+gmx rmsf -s em.tpr -f md_0_10_center.xtc -n index.ndx -o xvg/rmsfpro.xvg
+
+for protein 1 
+xmgrace xvg/rmsfpro.xvg
+
+Radius of Gyration
+gmx gyrate -f md_0_10_center.xtc -s em.tpr -n index.ndx -o xvg/gyrationpro.xvg
+for protein 1 and 13 for ligand
+xmgrace xvg/gyrationpro.xvg
+
+SASA
+gmx sasa -f md_0_10_center.xtc -s em.tpr -n index.ndx -o xvg/sasaComplex.xvg
+xmgrace xvg/sasaComplex.xvg
+
+H Bond Analysis 
+gmx hbond -f md_0_10_center.xtc -s em.tpr -n index.ndx -num xvg/hbondpro.xvg
+for protein 1 
